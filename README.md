@@ -66,7 +66,7 @@ Roadmap 仅代表可能方向，不承诺具体实现时间。
 1. 克隆仓库。
 
    ```powershell
-   git clone <repo-url>
+   git clone [<repo-url>](https://github.com/Hidshad/chatgpt-obsidian-sync.git)
    cd chatgpt-obsidian-sync
    ```
 
