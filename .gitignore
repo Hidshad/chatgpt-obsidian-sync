@@ -1,0 +1,40 @@
+__pycache__/
+**/__pycache__/
+*.py[cod]
+.pytest_cache/
+*.egg-info/
+.venv/
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+
+# Local databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Local data and generated exports
+data/
+AI/
+Obsidian/
+_ChatGPTSyncTest/
+_ChatGPTSyncMVPTest/
+**/_ChatGPTSyncTest/
+**/_ChatGPTSyncMVPTest/
+**/AI/_ChatGPTSyncTest/
+**/AI/_ChatGPTSyncMVPTest/
+
+# Python / test caches
+.pytest_cache/
+
+# Node / build outputs
+node_modules/
+dist/
+build/
+
+# Logs
+*.log
+server.out.log
+server.err.log

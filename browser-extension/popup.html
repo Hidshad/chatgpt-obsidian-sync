@@ -1,0 +1,508 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ChatGPT Obsidian Sync</title>
+  <style>
+    body {
+      width: 340px;
+      margin: 0;
+      font-family: "Segoe UI", Arial, sans-serif;
+      background: #f8f8f5;
+      color: #1e2623;
+    }
+    main {
+      padding: 16px;
+    }
+    h1 {
+      font-size: 18px;
+      margin: 0 0 12px;
+    }
+    .status {
+      display: grid;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+    .notice {
+      border: 1px solid #d7ded8;
+      border-radius: 6px;
+      background: #ffffff;
+      color: #40504a;
+      font-size: 13px;
+      line-height: 1.45;
+      padding: 10px;
+      margin-bottom: 12px;
+    }
+    .mode-panel {
+      border: 1px solid #cfd8d2;
+      border-radius: 6px;
+      background: #ffffff;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+    .mode-heading {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+    .mode-copy {
+      color: #40504a;
+      font-size: 13px;
+      line-height: 1.45;
+      margin: 0 0 10px;
+    }
+    .mode-setting {
+      display: grid;
+      gap: 6px;
+      margin: 10px 0;
+      font-size: 13px;
+      color: #40504a;
+    }
+    .mode-setting input {
+      width: 100%;
+      box-sizing: border-box;
+      border: 1px solid #b9c3bd;
+      border-radius: 6px;
+      font: inherit;
+      padding: 8px 10px;
+    }
+    .advanced-settings[hidden] {
+      display: none;
+    }
+    .bulk-section {
+      border: 1px solid #cfd8d2;
+      border-radius: 6px;
+      background: #ffffff;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+    .bulk-section[hidden] {
+      display: none;
+    }
+    .bulk-grid {
+      display: grid;
+      gap: 8px;
+      margin: 10px 0;
+    }
+    .bulk-grid label,
+    .check-row {
+      display: grid;
+      gap: 6px;
+      color: #40504a;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    .check-row {
+      grid-template-columns: auto 1fr;
+      align-items: start;
+    }
+    .bulk-grid input[type="number"] {
+      width: 100%;
+      box-sizing: border-box;
+      border: 1px solid #b9c3bd;
+      border-radius: 6px;
+      font: inherit;
+      padding: 8px 10px;
+    }
+    .warning {
+      color: #9a5b00;
+      background: #fff6df;
+      border: 1px solid #e5b84f;
+      border-radius: 6px;
+      padding: 8px;
+      font-size: 13px;
+    }
+    .row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: baseline;
+      border-bottom: 1px solid #e0e4df;
+      padding-bottom: 7px;
+    }
+    .label {
+      color: #5f6c67;
+    }
+    .value {
+      text-align: right;
+      overflow-wrap: anywhere;
+      font-weight: 600;
+    }
+    button {
+      width: 100%;
+      border: 0;
+      border-radius: 6px;
+      background: #1f6f57;
+      color: white;
+      cursor: pointer;
+      font: inherit;
+      padding: 10px 12px;
+    }
+    button:disabled {
+      cursor: not-allowed;
+      background: #9aa49f;
+    }
+    button.secondary {
+      background: #47524e;
+    }
+    .message {
+      min-height: 20px;
+      margin-top: 12px;
+      color: #46534e;
+      overflow-wrap: anywhere;
+    }
+    .error {
+      color: #a12d25;
+    }
+    .success {
+      color: #207447;
+    }
+    .button-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    details.mode-panel summary,
+    details.inline-diagnostics summary {
+      cursor: pointer;
+      color: #40504a;
+      font-weight: 600;
+    }
+    details.inline-diagnostics {
+      border: 1px solid #d7ded8;
+      border-radius: 6px;
+      background: #ffffff;
+      padding: 10px;
+      margin-bottom: 12px;
+    }
+    details .status {
+      margin-top: 10px;
+      margin-bottom: 0;
+    }
+  </style>
+</head>
+<body>
+<main>
+  <h1>ChatGPT Obsidian Sync</h1>
+  <div class="notice" id="mode-notice" hidden>
+    安全模式已开启：仅显示当前会话导出，高级完整导出和批量导出入口默认隐藏。
+  </div>
+  <section class="mode-panel" hidden>
+    <div class="mode-heading">
+      <span>当前模式：</span>
+      <span id="mode-name">安全模式</span>
+    </div>
+    <p class="mode-copy" id="mode-description">
+      安全模式会隐藏高级完整导出和批量导出入口，推荐普通用户保持开启。
+    </p>
+    <button type="button" class="secondary" id="mode-toggle">安全模式：开启</button>
+    <div class="advanced-settings" id="advanced-mode-settings" hidden>
+      <label class="mode-setting">
+        高级模式冷却秒数
+        <input id="advanced-cooldown-seconds" type="number" min="0" max="60" step="1" value="20">
+      </label>
+      <p class="mode-copy">
+        高级模式会显示完整导出和开发者批量导出，并允许调整访问频率。设为 0 秒表示高级导出不额外等待。
+      </p>
+      <p class="mode-copy">
+        批量导出仅在高级模式中显示，并且需要用户确认后才会启动。
+      </p>
+    </div>
+  </section>
+  <section class="status" id="baseline-section">
+    <div class="row">
+      <span class="label">本地服务</span>
+      <span class="value" id="service">检查中</span>
+    </div>
+    <div class="row">
+      <span class="label">会话 ID</span>
+      <span class="value" id="conversation">检查中</span>
+    </div>
+    <div class="row">
+      <span class="label">页面支持</span>
+      <span class="value" id="supported">检查中</span>
+    </div>
+  </section>
+  <details class="inline-diagnostics">
+    <summary>页面诊断（默认折叠）</summary>
+    <div class="status">
+      <div class="row">
+        <span class="label">当前标签 URL</span>
+        <span class="value" id="active-tab-url">检查中</span>
+      </div>
+      <div class="row">
+        <span class="label">popup 解析会话 ID</span>
+        <span class="value" id="popup-conversation">检查中</span>
+      </div>
+      <div class="row">
+        <span class="label">content 报告会话 ID</span>
+        <span class="value" id="content-conversation">检查中</span>
+      </div>
+      <div class="warning" id="conversation-mismatch" hidden>
+        当前标签页 URL 解析结果与 content script 报告不一致，请刷新页面或重新加载扩展。
+      </div>
+    </div>
+  </details>
+  <section class="status">
+    <div class="row">
+      <span class="label">完整基线</span>
+      <span class="value" id="baseline-status">检查中</span>
+    </div>
+    <div class="row">
+      <span class="label">数据库消息数</span>
+      <span class="value" id="baseline-message-count">0</span>
+    </div>
+    <div class="row">
+      <span class="label">最近完整校准</span>
+      <span class="value" id="baseline-full-at">无</span>
+    </div>
+    <div class="row">
+      <span class="label">最近实时同步</span>
+      <span class="value" id="baseline-realtime-at">无</span>
+    </div>
+    <div class="row">
+      <span class="label">当前同步来源</span>
+      <span class="value" id="sync-source">未检测</span>
+    </div>
+    <div class="row">
+      <span class="label">完整导出消息数</span>
+      <span class="value" id="full-export-message-count">0</span>
+    </div>
+    <div class="row">
+      <span class="label">part 数量</span>
+      <span class="value" id="part-count">0</span>
+    </div>
+    <div class="row">
+      <span class="label">导出 section 数</span>
+      <span class="value" id="exported-section-count">0</span>
+    </div>
+    <div class="row">
+      <span class="label">顺序异常数量</span>
+      <span class="value" id="order-issue-count">0</span>
+    </div>
+    <div class="row">
+      <span class="label">最后一条导出预览</span>
+      <span class="value" id="last-exported-text-preview">无</span>
+    </div>
+  </section>
+  <details class="mode-panel" id="baseline-diagnostics">
+    <summary>高级诊断（默认折叠）</summary>
+    <div class="status">
+      <div class="row">
+        <span class="label">JSON mapping 节点数</span>
+        <span class="value" id="mapping-node-count">0</span>
+      </div>
+      <div class="row">
+        <span class="label">候选消息节点数</span>
+        <span class="value" id="candidate-message-node-count">0</span>
+      </div>
+      <div class="row">
+        <span class="label">parser warning</span>
+        <span class="value" id="parser-warning">无</span>
+      </div>
+    </div>
+  </details>
+  <button id="import-button" disabled>开始同步当前会话</button>
+  <button id="stop-realtime-button" class="secondary" type="button">停止实时同步</button>
+  <button id="regenerate-notes-button" class="secondary" type="button">重新生成当前会话笔记</button>
+  <details class="mode-panel" id="advanced-current-section">
+    <summary>高级：当前会话</summary>
+    <p class="mode-copy">重新校准会用后台标签页捕获当前会话完整文字数据，并与本地数据库合并排序。</p>
+    <button id="recalibrate-button" class="secondary" type="button">重新校准当前会话</button>
+  </details>
+  <p class="mode-copy" id="import-mode-help">
+    首次同步会先建立完整基线，可能需要几十秒；之后实时同步只增量更新当前会话文字。
+  </p>
+  <p class="mode-copy" hidden>
+    当前版本主要导出文字内容。图片导出仍在开发中，可能不会随完整会话一起保存。
+  </p>
+  <section class="status" id="task-section">
+    <div class="row">
+      <span class="label">当前任务</span>
+      <span class="value" id="task-status">空闲</span>
+    </div>
+    <div class="row">
+      <span class="label">任务标题</span>
+      <span class="value" id="task-title">无</span>
+    </div>
+    <div class="row">
+      <span class="label">任务进度</span>
+      <span class="value" id="task-progress">0 / 0</span>
+    </div>
+    <div class="row">
+      <span class="label">最近错误</span>
+      <span class="value" id="task-error">无</span>
+    </div>
+    <div class="row">
+      <span class="label">建议操作</span>
+      <span class="value" id="task-suggestion">无</span>
+    </div>
+  </section>
+  <section class="status" id="history-diagnostics" hidden>
+    <div class="row">
+      <span class="label">历史列表诊断</span>
+      <span class="value">解析失败摘要</span>
+    </div>
+    <div class="row">
+      <span class="label">URL</span>
+      <span class="value" id="diagnostics-url">无</span>
+    </div>
+    <div class="row">
+      <span class="label">Status</span>
+      <span class="value" id="diagnostics-status">无</span>
+    </div>
+    <div class="row">
+      <span class="label">Response size</span>
+      <span class="value" id="diagnostics-size">0</span>
+    </div>
+    <div class="row">
+      <span class="label">Top-level keys</span>
+      <span class="value" id="diagnostics-top-level-keys">无</span>
+    </div>
+    <div class="row">
+      <span class="label">Candidate paths</span>
+      <span class="value" id="diagnostics-candidate-paths">无</span>
+    </div>
+    <div class="row">
+      <span class="label">Candidate lengths</span>
+      <span class="value" id="diagnostics-candidate-lengths">无</span>
+    </div>
+    <div class="row">
+      <span class="label">First item keys</span>
+      <span class="value" id="diagnostics-first-item-keys">无</span>
+    </div>
+    <div class="row">
+      <span class="label">Preview</span>
+      <span class="value" id="diagnostics-preview">无</span>
+    </div>
+  </section>
+  <section class="mode-panel" id="realtime-section">
+    <div class="mode-heading">
+      <span>实时同步：</span>
+      <span id="realtime-state">关闭</span>
+    </div>
+    <p class="mode-copy">
+      实时同步会在当前 ChatGPT 页面定时同步可见文字，默认关闭。图片/附件同步仍在开发中。
+    </p>
+    <button type="button" class="secondary" id="realtime-toggle" hidden>实时同步：关闭</button>
+    <label class="mode-setting">
+      同步间隔秒数
+      <input id="realtime-interval-seconds" type="number" min="10" max="300" step="1" value="30">
+    </label>
+    <p class="mode-copy">
+      建议 30 秒以上。间隔越短，同步越及时，但会更频繁地读取当前页面并写入本地服务。
+    </p>
+    <div class="status">
+      <div class="row">
+        <span class="label">content script</span>
+        <span class="value" id="realtime-content-script">未检测到</span>
+      </div>
+      <div class="row">
+        <span class="label">最近同步时间</span>
+        <span class="value" id="realtime-last-sync">无</span>
+      </div>
+      <div class="row">
+        <span class="label">最近同步消息数</span>
+        <span class="value" id="realtime-message-count">0</span>
+      </div>
+      <div class="row">
+        <span class="label">当前同步会话 ID</span>
+        <span class="value" id="realtime-conversation-id">无</span>
+      </div>
+      <div class="row">
+        <span class="label">最近收到/新增/更新/跳过</span>
+        <span class="value" id="realtime-write-counts">无</span>
+      </div>
+      <div class="row">
+        <span class="label">数据库消息总数</span>
+        <span class="value" id="realtime-db-count">0</span>
+      </div>
+      <div class="row">
+        <span class="label">Markdown 导出</span>
+        <span class="value" id="realtime-exported">未检测</span>
+      </div>
+      <div class="row">
+        <span class="label">输出文件夹</span>
+        <span class="value" id="realtime-output-folder">无</span>
+      </div>
+      <div class="row">
+        <span class="label">最近更新文件</span>
+        <span class="value" id="realtime-updated-files">无</span>
+      </div>
+      <div class="row">
+        <span class="label">最近成功导出</span>
+        <span class="value" id="realtime-last-successful-export">无</span>
+      </div>
+    </div>
+    <details class="inline-diagnostics" id="realtime-diagnostics-details">
+      <summary>高级实时诊断（默认折叠）</summary>
+      <div class="status">
+        <div class="row">
+          <span class="label">最近错误</span>
+          <span class="value" id="realtime-error">无</span>
+        </div>
+        <div class="row">
+          <span class="label">导出错误</span>
+          <span class="value" id="realtime-export-error">无</span>
+        </div>
+        <div class="row">
+          <span class="label">selector / payload / order 诊断</span>
+          <span class="value" id="realtime-advanced-diagnostics">无</span>
+        </div>
+      </div>
+    </details>
+  </section>
+  <section class="bulk-section" id="developer-bulk-section" hidden>
+    <details>
+      <summary>实验功能（暂不推荐）</summary>
+    <h2>开发者批量导出</h2>
+    <p class="warning">
+      实验功能，暂不推荐使用。当前主线是安全模式实时文字同步和当前会话导出。
+    </p>
+    <p class="mode-copy">
+      先扫描历史会话列表，勾选要导出的会话，再逐个导出到 Obsidian。请仅用于备份你自己账号下可访问的会话，并合理设置间隔。
+    </p>
+    <div class="bulk-grid">
+      <label>
+        导出间隔秒数
+        <input id="bulk-interval-seconds" type="number" min="0" step="1" value="20">
+      </label>
+      <div class="warning" id="bulk-interval-warning" hidden>0 秒间隔可能过于频繁，不推荐。</div>
+      <label>
+        最大导出数量
+        <input id="bulk-max-count" type="number" min="1" step="1" value="20">
+      </label>
+      <label class="check-row">
+        <input id="bulk-use-all" type="checkbox">
+        <span>全部</span>
+      </label>
+      <label class="check-row">
+        <input id="bulk-confirmed" type="checkbox">
+        <span>我确认仅用于备份自己账号下可访问的 ChatGPT 会话，并理解频繁导出可能导致限制或验证。</span>
+      </label>
+    </div>
+    <div class="message" id="bulk-list">尚未扫描历史会话列表。</div>
+    <div class="button-row">
+      <button id="bulk-scan-button" disabled>扫描历史会话列表</button>
+      <button id="bulk-select-all-button" class="secondary" disabled>全选当前列表</button>
+    </div>
+    <div class="button-row">
+      <button id="bulk-export-selected-button" disabled>导出已选择的会话</button>
+      <button id="bulk-stop-button" class="secondary" disabled>停止批量导出</button>
+    </div>
+    <div class="message" id="bulk-progress">未开始。</div>
+    </details>
+  </section>
+  <div class="notice">
+    建议仅备份你自己账号下的重要会话。请避免短时间内连续导出大量会话。
+  </div>
+  <div class="message" id="message"></div>
+</main>
+<script src="conversation-url.js"></script>
+<script src="popup.js"></script>
+</body>
+</html>

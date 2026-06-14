@@ -1,0 +1,6 @@
+{
+  "vault_path": "C:\\Path\\To\\ObsidianVault",
+  "base_dir": "AI/_ChatGPTSyncMVPTest",
+  "messages_per_part": 10,
+  "server_port": 8765
+}
