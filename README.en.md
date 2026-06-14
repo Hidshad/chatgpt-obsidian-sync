@@ -66,7 +66,7 @@ The roadmap only describes possible directions and does not commit to an impleme
 1. Clone this repository.
 
    ```powershell
-   git clone <repo-url>
+   git clone https://github.com/Hidshad/chatgpt-obsidian-sync.git
    cd chatgpt-obsidian-sync
    ```
 
